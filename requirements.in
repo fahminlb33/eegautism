@@ -1,0 +1,20 @@
+# Data manipulation
+numpy
+scipy
+pandas
+xarray
+netCDF4
+matplotlib
+
+# EEG data preprocessing
+mne
+autoreject
+PyWavelets
+
+# Machine learning
+tensorflow[and-cuda]
+scikit-learn
+
+# Jupyter Notebook
+tqdm
+ipykernel
