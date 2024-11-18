@@ -1,23 +1,17 @@
 import os
-import re
 import time
 import glob
 import shutil
 import pathlib
 import argparse
 import dataclasses
-
-from io import BytesIO
 from pprint import pprint
-from collections import Counter
 
 import mne
 import numpy as np
 import xarray as xr
 
-from PIL import Image
 from autoreject import AutoReject
-from matplotlib.figure import Figure
 from joblib import Parallel, delayed
 
 
@@ -190,12 +184,6 @@ def merge_data(args: CliArguments):
     patient_names = np.array(patient_names)
     recording_numbers = np.array(recording_numbers)
 
-    print("labels", labels.shape)
-    print("signals", signals.shape)
-    print("segments", segments.shape)
-    print("patient_names", patient_names.shape)
-    print("recording_numbers", recording_numbers.shape)
-
     # move signal to last channel
     signals = np.moveaxis(signals, 1, 2)
 
@@ -261,20 +249,18 @@ def merge_rejecton_logs(args: CliArguments):
 
     # determine biggest shape of the logs
     max_epochs = np.max([x.shape[0] for x in rejection_logs])
-    
+
     # pad with zeros
-    rejection_logs = [np.pad(x, pad_width=[(0, max_epochs - x.shape[0]), (0, 0)], mode="constant") for x in rejection_logs]
+    rejection_logs = [
+        np.pad(x, pad_width=[(0, max_epochs - x.shape[0]), (0, 0)], mode="constant")
+        for x in rejection_logs
+    ]
 
     # convert to numpy
     labels = np.array(labels)
     patient_names = np.array(patient_names)
     recording_numbers = np.array(recording_numbers)
     rejection_logs = np.array(rejection_logs)
-
-    print("labels", labels.shape)
-    print("patient_names", patient_names.shape)
-    print("recording_numbers", recording_numbers.shape)
-    print("rejection_logs", rejection_logs.shape)
 
     # combine all
     ds = xr.Dataset(
@@ -326,7 +312,7 @@ if __name__ == "__main__":
     )  # ../data/dataset_overlap_60_logs.nc
 
     # epoching
-    parser.add_argument("--duration", type=int, default=60)
+    parser.add_argument("--duration", type=int, default=10)
     parser.add_argument("--overlap", type=int, default=0)
 
     # parallel jobs
