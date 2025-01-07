@@ -35,6 +35,7 @@ class CliArguments:
     cv: int
     epochs: int
     batch_size: int
+    learning_rate: float
     test_size: float
     test_patients: list[str]
     arch: ArchitectureEnum
@@ -84,14 +85,7 @@ def main(args: CliArguments):
         )
 
         # create model
-        model = create_model(args.arch, X_train)
-
-        # create callbacks
-        es = tf.keras.callbacks.EarlyStopping(
-            monitor="val_loss",
-            patience=10,
-            restore_best_weights=True,
-        )
+        model = create_model(args.arch, X_train, args.learning_rate)
 
         # fit model
         train_start = time.time()
@@ -100,7 +94,6 @@ def main(args: CliArguments):
             y_train,
             batch_size=args.batch_size,
             epochs=args.epochs,
-            callbacks=[es],
             verbose=2,
         )
         train_elapsed = time.time() - train_start
@@ -150,9 +143,10 @@ if __name__ == "__main__":
     parser.add_argument("metrics-file", type=str)
 
     parser.add_argument("--name", type=str, required=True)
-    parser.add_argument("--cv", type=int, default=10)
+    parser.add_argument("--cv", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--test-size", type=float)
     parser.add_argument("--test-patients", type=str)
     parser.add_argument(

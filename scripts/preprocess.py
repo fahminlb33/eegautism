@@ -19,7 +19,7 @@ from joblib import Parallel, delayed
 class CliArguments:
     dataset_path: str
     output_path: str
-    log_output_path: str
+    # log_output_path: str
 
     duration: int
     overlap: int
@@ -192,12 +192,12 @@ def merge_data(args: CliArguments):
         data_vars={
             "signal": (["samples", "time_steps", "channels"], signals),
             "label": (["samples"], labels),
-            "segment": (["samples"], segments),
-            "patient_name": (["samples"], patient_names),
-            "recording_number": (["samples"], recording_numbers),
         },
         coords={
             "samples": range(signals.shape[0]),
+            "segment": (["samples"], segments),
+            "patient_name": (["samples"], patient_names),
+            "recording_number": (["samples"], recording_numbers),
         },
     )
 
@@ -294,7 +294,7 @@ def main(args: CliArguments):
     # run all jobs
     epoch_data(args)
     merge_data(args)
-    merge_rejecton_logs(args)
+    # merge_rejecton_logs(args)
 
     # clean up temp files
     print("CLEAN UP!")
@@ -307,9 +307,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset-path", type=str)  # ../data/edf/**/*.edf
     parser.add_argument("output-path", type=str)  # ../data/dataset_overlap_60.nc
-    parser.add_argument(
-        "log-output-path", type=str
-    )  # ../data/dataset_overlap_60_logs.nc
+    # parser.add_argument(
+    #     "log-output-path", type=str
+    # )  # ../data/dataset_overlap_60_logs.nc
 
     # epoching
     parser.add_argument("--duration", type=int, default=10)

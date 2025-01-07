@@ -35,6 +35,7 @@ class CliArguments:
     name: str
     epochs: int
     batch_size: int
+    learning_rate: float
     test_size: float
     test_patients: list[str]
     arch: ArchitectureEnum
@@ -64,16 +65,10 @@ def main(args: CliArguments):
     )
 
     # create model
-    model = create_model(args.arch, X_train)
+    model = create_model(args.arch, X_train, args.learning_rate)
     print(model.summary())
 
     # create callbacks
-    es = tf.keras.callbacks.EarlyStopping(
-        monitor="val_loss",
-        patience=10,
-        restore_best_weights=True,
-    )
-
     tb = tf.keras.callbacks.TensorBoard(
         histogram_freq=1,
         log_dir=f"{args.output_path}/tensorboard/{args.name}",
@@ -86,7 +81,7 @@ def main(args: CliArguments):
         y_train,
         epochs=args.epochs,
         batch_size=args.batch_size,
-        callbacks=[es, tb],
+        callbacks=[tb],
         verbose=2,
     )
     train_elapsed = time.time() - train_start
@@ -159,6 +154,7 @@ if __name__ == "__main__":
     parser.add_argument("--name", type=str, required=True)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--test-size", type=float)
     parser.add_argument("--test-patients", type=str)
     parser.add_argument(

@@ -12,7 +12,6 @@ from eeg import ArchitectureEnum, set_seeds, load_data, create_model
 import numpy as np
 import tensorflow as tf
 
-from scikeras.wrappers import KerasClassifier
 from sklearn.model_selection import StratifiedKFold, ParameterGrid
 from sklearn.metrics import (
     matthews_corrcoef,
@@ -54,9 +53,9 @@ class CliArguments:
 #  ENTRY POINT
 # ----------------------------------------------------------------------------
 
-def cross_val(params: dict, X: np.ndarray, y: np.ndarray):
+def cross_val(params: dict, dataset_mode: str, X: np.ndarray, y: np.ndarray):
     # create CV split
-    cv = StratifiedKFold(shuffle=True, n_splits=5, random_state=GLOBAL_RANDOM_SEED)
+    cv = StratifiedKFold(shuffle=True, n_splits=3, random_state=GLOBAL_RANDOM_SEED)
 
     # perform CV
     for fold_i, (train_idx, test_idx) in enumerate(cv.split(X, y)):
@@ -100,6 +99,7 @@ def cross_val(params: dict, X: np.ndarray, y: np.ndarray):
                 {
                     "arch": args.arch.value,
                     "dataset": args.dataset_file,
+                    "dataset_mode": dataset_mode,
                     "accuracy": accuracy_score(y_test, y_pred),
                     "mcc": matthews_corrcoef(y_test, y_pred),
                     "roc-auc": roc_auc_score(y_test, y_pred),
@@ -121,11 +121,16 @@ def cross_val(params: dict, X: np.ndarray, y: np.ndarray):
             f.write("\n")
             f.flush()
 
+def get_run_name(arch: str, dataset: str, dataset_mode: str, batch_size: int, epochs: float, learning_rate: float):
+    return f"{arch}_{dataset}_{dataset_mode}_{batch_size}_{epochs}_{learning_rate}"
+
 def main(args: CliArguments):
     # load dataset
     X, _, y, _ = load_data(
         args.arch, args.dataset_file, args.test_size, args.test_patients
     )
+
+    dataset_mode = "ps" if len(args.test_patients) > 0  else "sr"
 
     # create grid
     params_grid = ParameterGrid({
@@ -134,10 +139,21 @@ def main(args: CliArguments):
         "learning_rate": [0.001, 0.01, 0.1],
     })
 
+    # load previous tuning
+    with open("./results/tune-new.jsonl", "r") as f:
+        prev_runs = [json.loads(line) for line in f.readlines()]
+        prev_runs = set([get_run_name(x["arch"], x["dataset"], x["dataset_mode"], x["batch_size"], x["epochs"], x["learning_rate"]) for x in prev_runs])
+
     # run each grid
     for params in params_grid:
         print(">>>> PARAMS: ", params)
-        cross_val(params, X, y)
+        current_run = get_run_name(args.arch.value, args.dataset_file, dataset_mode, params["batch_size"], params["epochs"], params["learning_rate"])
+        print(current_run)
+        if current_run in prev_runs:
+            print(">>>> SKIP RUN!")
+            continue
+
+        cross_val(params, dataset_mode, X, y)
 
 
 if __name__ == "__main__":
@@ -145,15 +161,15 @@ if __name__ == "__main__":
     set_seeds()
 
     # set GPU memory growth
-    try:
-        gpus = tf.config.list_physical_devices('GPU')
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
+    # try:
+    #     gpus = tf.config.list_physical_devices('GPU')
+    #     for gpu in gpus:
+    #         tf.config.experimental.set_memory_growth(gpu, True)
 
-        logical_gpus = tf.config.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
-    except RuntimeError as e:
-        print(e)
+    #     logical_gpus = tf.config.list_logical_devices('GPU')
+    #     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+    # except RuntimeError as e:
+    #     print(e)
 
     # create CLI parser
     parser = argparse.ArgumentParser()
